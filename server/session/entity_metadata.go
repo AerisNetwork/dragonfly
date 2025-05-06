@@ -1,6 +1,9 @@
 package session
 
 import (
+	"math"
+	"time"
+
 	"github.com/df-mc/dragonfly/server/entity"
 	"github.com/df-mc/dragonfly/server/entity/effect"
 	"github.com/df-mc/dragonfly/server/internal/nbtconv"
@@ -10,9 +13,12 @@ import (
 	"github.com/go-gl/mathgl/mgl64"
 	"github.com/google/uuid"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
-	"math"
-	"time"
 )
+
+// NetworkEntityMetadata ...
+type NetworkEntityMetadata interface {
+	NetworkEntityMetadata(v world.Viewer, e world.Entity, m protocol.EntityMetadata) protocol.EntityMetadata
+}
 
 // parseEntityMetadata returns an entity metadata object with default values. It is equivalent to setting
 // all properties to their default values and disabling all flags.
@@ -33,6 +39,9 @@ func (s *Session) parseEntityMetadata(e world.Entity) protocol.EntityMetadata {
 	}
 	if e.H().Type() == entity.LingeringPotionType {
 		m.SetFlag(protocol.EntityDataKeyFlags, protocol.EntityDataFlagLingering)
+	}
+	if v, ok := e.H().Type().(NetworkEntityMetadata); ok {
+		m = v.NetworkEntityMetadata(s, e, m)
 	}
 	s.addSpecificMetadata(e, m)
 	if ent, ok := e.(*entity.Ent); ok {
